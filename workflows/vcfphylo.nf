@@ -19,12 +19,18 @@ if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    CONFIG FILES
+    INPUT CHANNELS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-ch_multiqc_config        = file("$projectDir/assets/multiqc_config.yml", checkIfExists: true)
-ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multiqc_config) : Channel.empty()
+Channel
+    .fromPath(params.ref_genomes)
+    .map {
+        it -> [['id':it.baseName, 'single_end': true], it]
+    }
+    .set { ref_genomes }
+representative_genome = Channel.fromPath(params.representative_genome)
+samp_vcf = Channel.fromPath(params.samp_vcf)
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -35,8 +41,6 @@ ch_multiqc_custom_config = params.multiqc_config ? Channel.fromPath(params.multi
 //
 // SUBWORKFLOW: Consisting of a mix of local and nf-core/modules
 //
-include { INPUT_CHECK } from '../subworkflows/local/input_check'
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT NF-CORE MODULES/SUBWORKFLOWS
@@ -46,9 +50,16 @@ include { INPUT_CHECK } from '../subworkflows/local/input_check'
 //
 // MODULE: Installed directly from nf-core/modules
 //
-include { FASTQC                      } from '../modules/nf-core/modules/fastqc/main'
-include { MULTIQC                     } from '../modules/nf-core/modules/multiqc/main'
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
+include { GUNZIP as GUNZIP_REF ; GUNZIP as GUNZIP_REP } from '../modules/nf-core/modules/gunzip/main'
+include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
+include { SAMTOOLS_MPILEUP } from '../modules/nf-core/modules/samtools/mpileup/main'
+include { BOWTIE2_INDEX } from '../modules/nf-core/modules/bowtie2/index/main'
+include { BOWTIE2_ALIGN } from '../modules/nf-core/modules/bowtie2/align/main'
+include { GENOME2READS } from '../modules/local/genome2reads'
+include { BCFTOOLS_CALL } from '../modules/local/bcftools/call'
+include { MULTIVCFANALYZER } from '../modules/nf-core/modules/multivcfanalyzer/main'
+include { IQTREE } from '../modules/nf-core/modules/iqtree/main'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -57,49 +68,85 @@ include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/
 */
 
 // Info required for completion email and summary
-def multiqc_report = []
 
 workflow VCFPHYLO {
 
     ch_versions = Channel.empty()
 
-    //
-    // SUBWORKFLOW: Read in samplesheet, validate and stage input files
-    //
-    INPUT_CHECK (
-        ch_input
-    )
-    ch_versions = ch_versions.mix(INPUT_CHECK.out.versions)
+    ref_genomes
+        .branch {
+            decompressed: it[1].toString().tokenize(".")[-1] != 'gz'
+            compressed: it[1].toString().tokenize(".")[-1] == 'gz'
+        }
+        .set { genomes_fork }
 
-    //
-    // MODULE: Run FastQC
-    //
-    FASTQC (
-        INPUT_CHECK.out.reads
+    GUNZIP_REF (
+        genomes_fork.compressed
     )
-    ch_versions = ch_versions.mix(FASTQC.out.versions.first())
+
+    GUNZIP_REF.out.gunzip
+        .mix( genomes_fork.decompressed )
+        .set { ref_genomes_pre_processed }
+
+    GENOME2READS (
+        ref_genomes_pre_processed
+    )
+
+    GUNZIP_REP (
+        representative_genome
+    )
+
+    SAMTOOLS_FAIDX (
+        GUNZIP_REP.out.gunzip
+    )
+
+    BOWTIE2_INDEX (
+        GUNZIP_REP.out.gunzip
+    )
+
+    BOWTIE2_ALIGN (
+        ref_genomes_pre_processed.out.fastq,
+        BOWTIE2_INDEX.out.index.first(),
+        false,
+        true
+    )
+
+    SAMTOOLS_MPILEUP(
+        BOWTIE2_ALIGN.out.bam
+            .map {
+                meta, bam -> [meta, bam, []]
+            } ,
+        GUNZIP_REP.out.gunzip
+    )
+
+    BCFTOOLS_CALL (
+        SAMTOOLS_MPILEUP.out.mpileup
+    )
+
+    MULTIVCFANALYZER (
+        BCFTOOLS_CALL.out.vcf.collect()
+        .mix (samp_vcf.collect())
+        .collect(), // vcfs
+        GUNZIP_REP.out.gunzip, // fasta
+        [], // snpeff_results
+        [], // gff
+        [], // allele_freqs
+        30, // genotype_quality
+        5, // coverage
+        0.8, // homozygous_freq
+        0.2, // heterozygous_freq
+        [] //gff_exclude
+    )
+
+    IQTREE (
+        MULTIVCFANALYZER.out.snp_alignment,
+        []
+    )
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
 
-    //
-    // MODULE: MultiQC
-    //
-    workflow_summary    = WorkflowVcfphylo.paramsSummaryMultiqc(workflow, summary_params)
-    ch_workflow_summary = Channel.value(workflow_summary)
-
-    ch_multiqc_files = Channel.empty()
-    ch_multiqc_files = ch_multiqc_files.mix(Channel.from(ch_multiqc_config))
-    ch_multiqc_files = ch_multiqc_files.mix(ch_multiqc_custom_config.collect().ifEmpty([]))
-    ch_multiqc_files = ch_multiqc_files.mix(ch_workflow_summary.collectFile(name: 'workflow_summary_mqc.yaml'))
-    ch_multiqc_files = ch_multiqc_files.mix(CUSTOM_DUMPSOFTWAREVERSIONS.out.mqc_yml.collect())
-    ch_multiqc_files = ch_multiqc_files.mix(FASTQC.out.zip.collect{it[1]}.ifEmpty([]))
-
-    MULTIQC (
-        ch_multiqc_files.collect()
-    )
-    multiqc_report = MULTIQC.out.report.toList()
     ch_versions    = ch_versions.mix(MULTIQC.out.versions)
 }
 

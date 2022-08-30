@@ -5,17 +5,49 @@
         "nf-core/modules": {
             "git_url": "https://github.com/nf-core/modules.git",
             "modules": {
+                "bcftools/filter": {
+                    "branch": "master",
+                    "git_sha": "682f789f93070bd047868300dd018faf3d434e7c"
+                },
+                "bcftools/view": {
+                    "branch": "master",
+                    "git_sha": "682f789f93070bd047868300dd018faf3d434e7c"
+                },
+                "bowtie2/align": {
+                    "branch": "master",
+                    "git_sha": "848ee9a215d02d80be033bfa60881700f2bd914c"
+                },
+                "bowtie2/build": {
+                    "branch": "master",
+                    "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
+                },
                 "custom/dumpsoftwareversions": {
-                    "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d",
-                    "branch": "master"
+                    "branch": "master",
+                    "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
                 },
-                "fastqc": {
-                    "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d",
-                    "branch": "master"
+                "gunzip": {
+                    "branch": "master",
+                    "git_sha": "fa37e0662690c4ec4260dae282fbce08777503e6"
                 },
-                "multiqc": {
-                    "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d",
-                    "branch": "master"
+                "iqtree": {
+                    "branch": "master",
+                    "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
+                },
+                "multivcfanalyzer": {
+                    "branch": "master",
+                    "git_sha": "aed45dd76675cd30067da559f38f54f087ad9dcf"
+                },
+                "samtools/index": {
+                    "branch": "master",
+                    "git_sha": "897c33d5da084b61109500ee44c01da2d3e4e773"
+                },
+                "samtools/mpileup": {
+                    "branch": "master",
+                    "git_sha": "454e0acc09de7cdcc90007420bfe8afa251286fb"
+                },
+                "samtools/sort": {
+                    "branch": "master",
+                    "git_sha": "897c33d5da084b61109500ee44c01da2d3e4e773"
                 }
             }
         }
