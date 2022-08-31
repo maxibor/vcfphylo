@@ -25,6 +25,10 @@
                     "branch": "master",
                     "git_sha": "e745e167c1020928ef20ea1397b6b4d230681b4d"
                 },
+                "gatk/unifiedgenotyper": {
+                    "branch": "master",
+                    "git_sha": "e827a042ce1f55a37a8e771944b566faa5108e8e"
+                },
                 "gunzip": {
                     "branch": "master",
                     "git_sha": "fa37e0662690c4ec4260dae282fbce08777503e6"
@@ -36,6 +40,14 @@
                 "multivcfanalyzer": {
                     "branch": "master",
                     "git_sha": "aed45dd76675cd30067da559f38f54f087ad9dcf"
+                },
+                "picard/createsequencedictionary": {
+                    "branch": "master",
+                    "git_sha": "682f789f93070bd047868300dd018faf3d434e7c"
+                },
+                "samtools/faidx": {
+                    "branch": "master",
+                    "git_sha": "ce06694af8ca2f7453206aa974c2c9a2b99ec093"
                 },
                 "samtools/index": {
                     "branch": "master",

@@ -6,17 +6,10 @@
 
 def summary_params = NfcoreSchema.paramsSummaryMap(workflow, params)
 
-// Validate input parameters
-WorkflowVcfphylo.initialise(params, log)
 
 // TODO nf-core: Add all file path parameters for the pipeline to the list below
 // Check input path parameters to see if they exist
-def checkPathParamList = [ params.input, params.multiqc_config, params.fasta ]
-for (param in checkPathParamList) { if (param) { file(param, checkIfExists: true) } }
-
 // Check mandatory parameters
-if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input samplesheet not specified!' }
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     INPUT CHANNELS
@@ -26,11 +19,18 @@ if (params.input) { ch_input = file(params.input) } else { exit 1, 'Input sample
 Channel
     .fromPath(params.ref_genomes)
     .map {
-        it -> [['id':it.baseName, 'single_end': true], it]
+        it -> [['id':it.simpleName, 'single_end': true], it]
     }
     .set { ref_genomes }
-representative_genome = Channel.fromPath(params.representative_genome)
-samp_vcf = Channel.fromPath(params.samp_vcf)
+
+Channel
+    .fromPath(params.representative_genome)
+    .map {
+        it -> [['id':it.simpleName, 'single_end': true], it]
+    }
+    .set { representative_genome }
+
+samp_vcf = params.samp_vcf ? Channel.fromPath(params.samp_vcf) : Channel.empty()
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -53,11 +53,12 @@ samp_vcf = Channel.fromPath(params.samp_vcf)
 include { CUSTOM_DUMPSOFTWAREVERSIONS } from '../modules/nf-core/modules/custom/dumpsoftwareversions/main'
 include { GUNZIP as GUNZIP_REF ; GUNZIP as GUNZIP_REP } from '../modules/nf-core/modules/gunzip/main'
 include { SAMTOOLS_FAIDX } from '../modules/nf-core/modules/samtools/faidx/main'
-include { SAMTOOLS_MPILEUP } from '../modules/nf-core/modules/samtools/mpileup/main'
-include { BOWTIE2_INDEX } from '../modules/nf-core/modules/bowtie2/index/main'
+include { SAMTOOLS_INDEX } from '../modules/nf-core/modules/samtools/index/main'
+include { BOWTIE2_BUILD } from '../modules/nf-core/modules/bowtie2/build/main'
 include { BOWTIE2_ALIGN } from '../modules/nf-core/modules/bowtie2/align/main'
 include { GENOME2READS } from '../modules/local/genome2reads'
-include { BCFTOOLS_CALL } from '../modules/local/bcftools/call'
+include { PICARD_CREATESEQUENCEDICTIONARY } from '../modules/nf-core/modules/picard/createsequencedictionary/main'
+include { GATK_UNIFIEDGENOTYPER } from '../modules/nf-core/modules/gatk/unifiedgenotyper/main'
 include { MULTIVCFANALYZER } from '../modules/nf-core/modules/multivcfanalyzer/main'
 include { IQTREE } from '../modules/nf-core/modules/iqtree/main'
 
@@ -89,7 +90,7 @@ workflow VCFPHYLO {
         .set { ref_genomes_pre_processed }
 
     GENOME2READS (
-        ref_genomes_pre_processed
+        ref_genomes_pre_processed,
     )
 
     GUNZIP_REP (
@@ -100,34 +101,73 @@ workflow VCFPHYLO {
         GUNZIP_REP.out.gunzip
     )
 
-    BOWTIE2_INDEX (
+    ch_versions = ch_versions.mix( SAMTOOLS_FAIDX.out.versions )
+
+    BOWTIE2_BUILD (
         GUNZIP_REP.out.gunzip
     )
 
     BOWTIE2_ALIGN (
-        ref_genomes_pre_processed.out.fastq,
-        BOWTIE2_INDEX.out.index.first(),
+        GENOME2READS.out.fastq,
+        BOWTIE2_BUILD.out.index.first(),
         false,
         true
     )
 
-    SAMTOOLS_MPILEUP(
+    ch_versions = ch_versions.mix( BOWTIE2_ALIGN.out.versions )
+
+    SAMTOOLS_INDEX(
         BOWTIE2_ALIGN.out.bam
-            .map {
-                meta, bam -> [meta, bam, []]
-            } ,
+    )
+
+    BOWTIE2_ALIGN.out.bam
+            .join(SAMTOOLS_INDEX.out.bai)
+            .view()
+
+    PICARD_CREATESEQUENCEDICTIONARY (
         GUNZIP_REP.out.gunzip
     )
 
-    BCFTOOLS_CALL (
-        SAMTOOLS_MPILEUP.out.mpileup
+    ch_versions = ch_versions.mix( PICARD_CREATESEQUENCEDICTIONARY.out.versions )
+
+    GATK_UNIFIEDGENOTYPER (
+        BOWTIE2_ALIGN.out.bam
+            .join(SAMTOOLS_INDEX.out.bai),
+        GUNZIP_REP.out.gunzip
+            .map {
+            it -> it[1]
+            }
+            .first(),
+        SAMTOOLS_FAIDX.out.fai
+            .map {
+            it -> it[1]
+            }
+            .first(),
+        PICARD_CREATESEQUENCEDICTIONARY.out.reference_dict
+            .map {
+            it -> it[1]
+            }
+            .first(),
+        [],
+        [],
+        [],
+        []
     )
 
+    ch_versions = ch_versions.mix( GATK_UNIFIEDGENOTYPER.out.versions )
+
     MULTIVCFANALYZER (
-        BCFTOOLS_CALL.out.vcf.collect()
-        .mix (samp_vcf.collect())
+        GATK_UNIFIEDGENOTYPER.out.vcf
+        .map {
+            it -> [it[1]]
+        }
+        .collect()
+        .mix (samp_vcf.collect().ifEmpty([]))
         .collect(), // vcfs
-        GUNZIP_REP.out.gunzip, // fasta
+        GUNZIP_REP.out.gunzip
+            .map {
+                it -> [it[1]]
+            }.first(), // fasta
         [], // snpeff_results
         [], // gff
         [], // allele_freqs
@@ -138,16 +178,19 @@ workflow VCFPHYLO {
         [] //gff_exclude
     )
 
+    ch_versions = ch_versions.mix( MULTIVCFANALYZER.out.versions )
+
     IQTREE (
-        MULTIVCFANALYZER.out.snp_alignment,
+        MULTIVCFANALYZER.out.snp_genome_alignment,
         []
     )
+
+    ch_versions = ch_versions.mix( IQTREE.out.versions )
 
     CUSTOM_DUMPSOFTWAREVERSIONS (
         ch_versions.unique().collectFile(name: 'collated_versions.yml')
     )
 
-    ch_versions    = ch_versions.mix(MULTIQC.out.versions)
 }
 
 /*

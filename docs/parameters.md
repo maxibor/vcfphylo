@@ -13,8 +13,8 @@ format</small></details>| `string` |  |  |  |
 | `samp_vcf` | Path to sample vcf file(s) <details><summary>Help</summary><small>In vcf.gz format</small></details>| `string` |  |  |  |
 | `ref_genomes` | Path to reference genome(s) to include in phylogeny <details><summary>Help</summary><small>In fasta or fasta.gz format</small></details>| `string` |  |  |  |
 | `outdir` | The output directory where the results will be saved. You have to use absolute paths to storage on Cloud infrastructure. | `string` |  |  |  |
-| `email` | Email address for completion summary. <details><summary>Help</summary><small>Set this parameter to your e-mail address to get a summary e-mail with details of the run
-sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every 
+| `email` | Email address for completion summary. <details><summary>Help</summary><small>Set this parameter to your e-mail address to get a summary e-mail with details of the 
+run sent to you when the workflow exits. If set in your user config file (`~/.nextflow/config`) then you don't need to specify this on the command line for every 
 run.</small></details>| `string` |  |  |  |
 
 ## Institutional config options
@@ -38,12 +38,12 @@ Set the top limit for requested resources for any single job.
 
 | Parameter | Description | Type | Default | Required | Hidden |
 |-----------|-----------|-----------|-----------|-----------|-----------|
-| `max_cpus` | Maximum number of CPUs that can be requested for any single job. <details><summary>Help</summary><small>Use to set an upper-limit for the CPU requirement for each 
-process. Should be an integer e.g. `--max_cpus 1`</small></details>| `integer` | 16 |  | True |
+| `max_cpus` | Maximum number of CPUs that can be requested for any single job. <details><summary>Help</summary><small>Use to set an upper-limit for the CPU requirement for 
+each process. Should be an integer e.g. `--max_cpus 1`</small></details>| `integer` | 16 |  | True |
 | `max_memory` | Maximum amount of memory that can be requested for any single job. <details><summary>Help</summary><small>Use to set an upper-limit for the memory requirement 
 for each process. Should be a string in the format integer-unit e.g. `--max_memory '8.GB'`</small></details>| `string` | 128.GB |  | True |
-| `max_time` | Maximum amount of time that can be requested for any single job. <details><summary>Help</summary><small>Use to set an upper-limit for the time requirement for each
-process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`</small></details>| `string` | 240.h |  | True |
+| `max_time` | Maximum amount of time that can be requested for any single job. <details><summary>Help</summary><small>Use to set an upper-limit for the time requirement for 
+each process. Should be a string in the format integer-unit e.g. `--max_time '2.h'`</small></details>| `string` | 240.h |  | True |
 
 ## Generic options
 

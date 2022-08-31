@@ -13,7 +13,6 @@
             "required": [
                 "outdir",
                 "ref_genomes",
-                "samp_vcf",
                 "representative_genome"
             ],
             "properties": {

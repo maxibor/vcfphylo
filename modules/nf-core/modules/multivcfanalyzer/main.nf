@@ -1,5 +1,5 @@
 process MULTIVCFANALYZER {
-    tag '$fasta'
+    tag "${fasta.simpleName}"
     label 'process_medium'
 
     conda (params.enable_conda ? "bioconda::multivcfanalyzer=0.85.2" : null)
@@ -51,7 +51,7 @@ process MULTIVCFANALYZER {
         ${cmd_snpeff_results} \\
         ${fasta} \\
         ${cmd_gff} \\
-        . \
+        . \\
         ${cmd_allele_freqs}  \\
         ${genotype_quality}  \\
         ${coverage}  \\

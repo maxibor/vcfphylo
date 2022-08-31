@@ -12,7 +12,7 @@ process IQTREE {
     val constant_sites
 
     output:
-    path "*.{treefile,contree,iqtree}",    emit: phylogeny
+    path "*",    emit: phylogeny
     path "versions.yml" , emit: versions
 
     when:
