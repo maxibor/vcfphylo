@@ -1,4 +1,4 @@
-# nf/vcfphylo: Output
+# vcfphylo: Output
 
 ## Introduction
 

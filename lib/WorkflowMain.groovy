@@ -1,5 +1,5 @@
 //
-// This file holds several functions specific to the main.nf workflow in the nf/vcfphylo pipeline
+// This file holds several functions specific to the main.nf workflow in the vcfphylo pipeline
 //
 
 class WorkflowMain {

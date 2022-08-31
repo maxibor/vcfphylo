@@ -1,9 +1,9 @@
 #!/usr/bin/env nextflow
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    nf/vcfphylo
+    vcfphylo
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    Github : https://github.com/nf/vcfphylo
+    Github : https://github.com/vcfphylo
 ----------------------------------------------------------------------------------------
 */
 
@@ -33,7 +33,7 @@ WorkflowMain.initialise(workflow, params, log)
 include { VCFPHYLO } from './workflows/vcfphylo'
 
 //
-// WORKFLOW: Run main nf/vcfphylo analysis pipeline
+// WORKFLOW: Run main vcfphylo analysis pipeline
 //
 workflow NF_VCFPHYLO {
     VCFPHYLO ()

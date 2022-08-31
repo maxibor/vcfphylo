@@ -1,6 +1,6 @@
 {
-    "name": "nf/vcfphylo",
-    "homePage": "https://github.com/nf/vcfphylo",
+    "name": "vcfphylo",
+    "homePage": "https://github.com/vcfphylo",
     "repos": {
         "nf-core/modules": {
             "git_url": "https://github.com/nf-core/modules.git",

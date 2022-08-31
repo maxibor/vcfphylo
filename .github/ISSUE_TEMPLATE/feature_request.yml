@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest an idea for the nf/vcfphylo pipeline
+description: Suggest an idea for the vcfphylo pipeline
 labels: enhancement
 body:
   - type: textarea
