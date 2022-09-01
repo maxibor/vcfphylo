@@ -122,7 +122,6 @@ workflow VCFPHYLO {
 
     BOWTIE2_ALIGN.out.bam
             .join(SAMTOOLS_INDEX.out.bai)
-            .view()
 
     PICARD_CREATESEQUENCEDICTIONARY (
         GUNZIP_REP.out.gunzip
